@@ -34,7 +34,9 @@ function hideQuiz(){
 function startQuiz(){
 	document.querySelector("#welcome").style.display = "none";
 	document.querySelector("#startQuiz").style.display = "none";
-	initializeQuiz();
+	
+	document.querySelector("#quiz").style.display = "block";
+	document.querySelector("#submitBtn").style.display="block";
 }
 
 function finishGame(){
@@ -51,19 +53,13 @@ function finishGame(){
 	
 	
 	document.querySelector("#score").style.display="block";
+	document.querySelector("#scoreLabel").textContent = score+"/100";
 }
 
 function checkAnswers(){
 	document.querySelector("#submitBtn").style.display="none";
 	for(let i=0;i<questions.length;i++){
-		let val = document.getElementsByName("question"+(i+1));
-		let checked = []
-		for(let j=0;j<val.length;j++){
-			if(val[j].checked){
-				checked.push(val[j].value);
-			}
-		}
-		if(questions[i].checkAnswers(checked)){
+		if(questions[i].checkCorrect("question"+(i+1), i+1)){
 			score += 10;
 		}
 	}
@@ -78,10 +74,12 @@ class DropdownQuestion {
 		this.scrambleAnswers();
 	}
 	
-	checkCorrect(value){
-		return this.answers[value[0]].isCorrect();
+	checkCorrect(id, num){
+		let selections = document.getElementsByName(id);
+		let val = parseInt(selections[0].value);
+		if(val < 0) return false;
+		return this.answers[val].isCorrect;
 	}
-	
 	
 	scrambleAnswers(){
 		for(let i=0;i<10;i++){
@@ -96,7 +94,7 @@ class DropdownQuestion {
 		<h4>${this.question}</h4>
 		<form>
 			<div class = "row">
-				<select name="question${number}">
+				<select name="question${number}" id="question${number}>
 					<option value="-1"></option>
 					<option value="0">${this.answers[0].text}</option>
 					<option value="1">${this.answers[1].text}</option>
@@ -117,12 +115,20 @@ class CheckboxQuestion {
 		this.scrambleAnswers();
 	}
 	
-	checkCorrect(value){
-		for(let i=0; i<value.length;i++){
-			if(!this.answers[value[i]].isCorrect){
+	checkCorrect(id, num){
+		let selections = document.getElementsByName(id);
+		
+		for(let i=0;i<selections.length;i++){
+			if(this.answers[i].isCorrect){
+				if(selections[i].checked) continue;
 				return false;
+			}else{
+				if(selections[i].checked){
+					return false;
+				}
 			}
 		}
+		
 		return true;
 	}
 	
@@ -158,8 +164,10 @@ class RangeQuestion {
 		this.feedback = feedback;
 	}
 	
-	checkCorrect(value){
-		return value.toLowerCase() == this.answer.toLowerCase();
+	checkCorrect(id, num){
+		let range = document.getElementsByName(id);
+		let val = range[0].value;
+		return val === this.answer.text;
 	}
 	
 	displayQuestion(container, number){
@@ -168,11 +176,17 @@ class RangeQuestion {
 		<h4>${this.question}</h4>
 		<form>
 			<div class = "row">
-				<blockquote>value</blockquote>
-				<label><input type="range" step=1 min=0 max=100 value=0 name="question${number}"></label>
+				<blockquote id="rangeVal">0</blockquote>
+				<label><input type="range" step=1 min=0 max=100 value=0 name="question${number}" id="question${number}"></label>
 				<label id="feedback${number}" class="hidden"></label>
 			</div>
 		</form>`;
+		
+		let sliders = document.getElementsByName("question"+number);
+		let slider = sliders[0];
+		let rangeVal = document.querySelector("#rangeVal");
+		
+		slider.addEventListener("input", () => {rangeVal.textContent = slider.value});
 	}
 }
 
@@ -183,8 +197,10 @@ class TextQuestion {
 		this.feedback = feedback;
 	}
 	
-	checkCorrect(value){
-		return value.toLowerCase() == this.answer.toLowerCase();
+	checkCorrect(id, num){
+		let selected = document.getElementsByName(id);
+		let val = selected[0].value;
+		return val.toLowerCase() === this.answer.text.toLowerCase();
 	}
 	
 	displayQuestion(container, number){
@@ -193,7 +209,7 @@ class TextQuestion {
 		<h4>${this.question}</h4>
 		<form>
 			<div class = "row">
-				<label><input type="text"name="question${number}"></label>
+				<label><input type="text" id="question${number}" name="question${number}"></label>
 				<label id="feedback${number}" class="hidden"></label>
 			</div>
 		</form>`;
@@ -217,7 +233,7 @@ class NumberQuestion {
 		<h4>${this.question}</h4>
 		<form>
 			<div class = "row">
-				<label><input type="number" min=0 max=100 name="question${number}"></label>
+				<label><input type="number" min=0 max=100 name="question${number} id="question${number}"></label>
 				<label id="feedback${number}" class="hidden"></label>
 			</div>
 		</form>`;
@@ -238,8 +254,22 @@ class Question {
 		}
 	}
 	
-	checkCorrect(value){
-		return this.answers[value].isCorrect;
+	checkCorrect(id, number){
+		
+		let radios = document.getElementsByName(id);
+		let desiredVal = 0;
+		for(let i=0;i<radios.length;i++){
+			if(radios[i].checked){
+				desiredVal = parseInt(radios[i].value);
+				break;
+			}
+		}
+		if(desiredVal < 0) return false;
+		let feedback = document.querySelector("#feedback"+number);
+		feedback.textContent = this.answers[desiredVal].feedback;
+		feedback.style.display="block";
+		
+		return this.answers[desiredVal].isCorrect;
 	}
 	
 	displayQuestion(container, number){
@@ -253,7 +283,7 @@ class Question {
 				<label><input type="radio" name="question${number}" value="1"> ${this.answers[1].text} </label>
 				<label><input type="radio" name="question${number}" value="2"> ${this.answers[2].text} </label>
 				<label><input type="radio" name="question${number}" value="3"> ${this.answers[3].text} </label>
-				<label id="feedback" class="hidden">${this.answers[0].feedback}</label>
+				<label id="feedback${number}" class="hidden"></label>
 			</div>
 		</form>`;
 	}
@@ -310,11 +340,11 @@ function addQuestions(){
 			new CheckboxQuestion(
 			"Which of these states are in the east coast of the US?",
 			[new Answer("Rhode Island", "Correct!",true),
-			new Answer("California", "Wrong."),
+			new Answer("California", "Wrong. The answers are: Rhode Island, New York, and Georgia."),
 			new Answer("Georgia", "Correct!",true),
 			new Answer("New York", "Correct!",true),
-			new Answer("North Dakota", "Wrong."),
-			new Answer("Louisiana", "Wrong.")]
+			new Answer("North Dakota", "Wrong. The answers are: Rhode Island, New York, and Georgia."),
+			new Answer("Louisiana", "Wrong. The answers are: Rhode Island, New York, and Georgia.")]
 			),
 			new DropdownQuestion(
 			"Which state produces the most oil in the US?",
@@ -322,8 +352,7 @@ function addQuestions(){
 			new Answer("California", "Wrong. The answer is Texas."),
 			new Answer("Alaska", "Wrong. The answer is Texas."),
 			new Answer("West Virginia", "Wrong. The answer is Texas."),
-			new Answer("Oklahoma", "Wrong. The answer is Texas."),
-			]
+			new Answer("Oklahoma", "Wrong. The answer is Texas.")]
 			),
 			new TextQuestion(
 			"What state has has the capital city of Sacramento?",
