@@ -17,8 +17,8 @@ function welcome(){
 }
 
 function initializeQuiz(){
-	document.querySelector("#quiz").style.display = "block";
-	document.querySelector("#submitBtn").style.display="block";
+	document.querySelector("#quiz").style.display = "inline";
+	document.querySelector("#submitBtn").style.display="inline";
 	score = 0;
 	addQuestions();
 	for(let i=0;i<questions.length;i++){
@@ -36,8 +36,8 @@ function startQuiz(){
 	document.querySelector("#startQuiz").style.display = "none";
 	document.querySelector("#goodScoreMsg").style.display="none";
 	
-	document.querySelector("#quiz").style.display = "block";
-	document.querySelector("#submitBtn").style.display="block";
+	document.querySelector("#quiz").style.display = "inline";
+	document.querySelector("#submitBtn").style.display="inline";
 }
 
 function restartQuiz(){
@@ -57,10 +57,10 @@ function finishGame(){
 	localStorage.setItem("plays", totalPlays);
 	
 	
-	document.querySelector("#score").style.display="block";
+	document.querySelector("#score").style.display="inline";
 	document.querySelector("#scoreLabel").textContent = score+"/100";
 	if(score > 80){
-		document.querySelector("#goodScoreMsg").style.display="block";
+		document.querySelector("#goodScoreMsg").style.display="inline";
 	}
 }
 
@@ -110,7 +110,7 @@ class DropdownQuestion {
 					<option value="3">${this.answers[3].text}</option>
 					<option value="3">${this.answers[4].text}</option>
 				</select>
-				<label id="feedback${number}" class="hidden"></label>
+				<label id="feedback${number}" class="hidden text-warning"></label>
 			</div>
 		</form>`;
 	}
@@ -125,19 +125,30 @@ class CheckboxQuestion {
 	
 	checkCorrect(id, num){
 		let selections = document.getElementsByName(id);
-		
+		let wrongAnswers = 0;
 		for(let i=0;i<selections.length;i++){
+			selections[i].disabled = true;
+			let feedback = document.querySelector("#feedback"+num+"-"+i)
+			feedback.style.display="inline";
 			if(this.answers[i].isCorrect){
-				if(selections[i].checked) continue;
-				return false;
+				if(selections[i].checked){
+					feedback.textContent = this.answers[i].feedback;
+					continue;
+				}
+				feedback.textContent = "Wrong.";
+				wrongAnswers++;
+			console.log("#feedback"+num+"-"+i);
 			}else{
 				if(selections[i].checked){
-					return false;
+					wrongAnswers++;
+					feedback.textContent = "Wrong.";
+					console.log("#feedback"+num+"-"+i);
 				}
+				feedback.textContent = "Correct."
 			}
 		}
 		
-		return true;
+		return wrongAnswers < 1 ? true : false;
 	}
 	
 	
@@ -153,13 +164,13 @@ class CheckboxQuestion {
 		<h5>Question ${number}</h5>
 		<h4>${this.question}</h4>
 		<form>
-			<div class = "row">
-				<label><input type="checkbox" name="question${number}" value="0"> ${this.answers[0].text}<label id="feedback" class="hidden">${this.answers[0].feedback}</label></label>
-				<label><input type="checkbox" name="question${number}" value="1"> ${this.answers[1].text}<label id="feedback" class="hidden">${this.answers[1].feedback}</label></label>
-				<label><input type="checkbox" name="question${number}" value="2"> ${this.answers[2].text}<label id="feedback" class="hidden">${this.answers[2].feedback}</label></label>
-				<label><input type="checkbox" name="question${number}" value="3"> ${this.answers[3].text}<label id="feedback" class="hidden">${this.answers[3].feedback}</label></label>
-				<label><input type="checkbox" name="question${number}" value="4"> ${this.answers[4].text}<label id="feedback" class="hidden">${this.answers[4].feedback}</label></label>
-				<label><input type="checkbox" name="question${number}" value="5"> ${this.answers[5].text}<label id="feedback" class="hidden">${this.answers[5].feedback}</label></label>
+			<div class="row">
+				<label><input type="checkbox" name="question${number}" value="0"> ${this.answers[0].text}<label id="feedback${number}-0" class="hidden text-warning">${this.answers[0].feedback}</label></label>
+				<label><input type="checkbox" name="question${number}" value="1"> ${this.answers[1].text}<label id="feedback${number}-1" class="hidden text-warning">${this.answers[1].feedback}</label></label>
+				<label><input type="checkbox" name="question${number}" value="2"> ${this.answers[2].text}<label id="feedback${number}-2" class="hidden text-warning">${this.answers[2].feedback}</label></label>
+				<label><input type="checkbox" name="question${number}" value="3"> ${this.answers[3].text}<label id="feedback${number}-3" class="hidden text-warning">${this.answers[3].feedback}</label></label>
+				<label><input type="checkbox" name="question${number}" value="4"> ${this.answers[4].text}<label id="feedback${number}-4" class="hidden text-warning">${this.answers[4].feedback}</label></label>
+				<label><input type="checkbox" name="question${number}" value="5"> ${this.answers[5].text}<label id="feedback${number}-5" class="hidden text-warning">${this.answers[5].feedback}</label></label>
 			</div>
 		</form>`;
 	}
@@ -190,7 +201,7 @@ class RangeQuestion {
 			<div class = "row">
 				<blockquote id="rangeVal">0</blockquote>
 				<label><input type="range" step=1 min=0 max=100 value=0 name="question${number}"></label>
-				<label id="feedback${number}" class="hidden"></label>
+				<label id="feedback${number}" class="hidden text-warning"></label>
 			</div>
 		</form>`;
 		
@@ -211,9 +222,15 @@ class TextQuestion {
 	
 	checkCorrect(id, num){
 		let selected = document.getElementsByName(id);
-		selected[0].disabled = true;
 		let val = selected[0].value;
-		return val.toLowerCase() === this.answer.text.toLowerCase();
+		selected[0].disabled = true;
+		let feedback = document.querySelector("#feedback"+num);
+		
+		let finalAnswer = val.toLowerCase() === this.answer.text.toLowerCase();
+		
+		feedback.textContent = finalAnswer ? this.answer.feedback : this.feedback;
+		feedback.style.display = "inline";
+		return finalAnswer;
 	}
 	
 	displayQuestion(container, number){
@@ -223,7 +240,7 @@ class TextQuestion {
 		<form>
 			<div class = "row">
 				<label><input type="text" id="question${number}" name="question${number}"></label>
-				<label id="feedback${number}" class="hidden"></label>
+				<label id="feedback${number}" class="hidden text-warning"></label>
 			</div>
 		</form>`;
 	}
@@ -254,7 +271,7 @@ class NumberQuestion {
 		<form>
 			<div class = "row">
 				<label><input type="number" min=0 max=100 value=0 name="question${number}"></label>
-				<label id="feedback${number}" class="hidden"></label>
+				<label id="feedback${number}" class="hidden text-warning"></label>
 			</div>
 		</form>`;
 	}
@@ -279,15 +296,16 @@ class Question {
 		let radios = document.getElementsByName(id);
 		let desiredVal = 0;
 		for(let i=0;i<radios.length;i++){
+			radios[i].disabled = true;
 			if(radios[i].checked){
-				desiredVal = parseInt(radios[i].value);
-				break;
+				desiredVal = i-1;
+				continue;
 			}
 		}
 		if(desiredVal < 0) return false;
-		let feedback = document.querySelector("#feedback"+number);
+		let feedback = document.querySelector("#feedback"+number+"-"+desiredVal);
 		feedback.textContent = this.answers[desiredVal].feedback;
-		feedback.style.display="block";
+		feedback.style.display="inline";
 		
 		return this.answers[desiredVal].isCorrect;
 	}
@@ -300,18 +318,18 @@ class Question {
 			<div class = "row">
 				<label><input type="radio" name="question${number}" value="-1" class="hidden" checked="checked"></label>
 				<label><input type="radio" name="question${number}" value="0"> ${this.answers[0].text}
-				<label id="feedback${number}0" class="hidden"></label>
+				<label id="feedback${number}-0" class="hidden text-warning"></label>
 				</label>
 				<label><input type="radio" name="question${number}" value="1"> ${this.answers[1].text}
-				<label id="feedback${number}1" class="hidden"></label>
+				<label id="feedback${number}-1" class="hidden text-warning"></label>
 				</label>
 				<label><input type="radio" name="question${number}" value="2"> ${this.answers[2].text}
-				<label id="feedback${number}2" class="hidden"></label>
+				<label id="feedback${number}-2" class="hidden text-warning"></label>
 				</label>
 				<label><input type="radio" name="question${number}" value="3"> ${this.answers[3].text}
-				<label id="feedback${number}3" class="hidden"></label>
+				<label id="feedback${number}-3" class="hidden text-warning"></label>
 				</label>
-				<label id="feedback${number}4" class="hidden"></label>
+				<label id="feedback${number}-4" class="hidden text-warning"></label>
 			</div>
 		</form>`;
 	}
@@ -368,11 +386,11 @@ function addQuestions(){
 			new CheckboxQuestion(
 			"Which of these states are in the east coast of the US?",
 			[new Answer("Rhode Island", "Correct!",true),
-			new Answer("California", "Wrong. The answers are: Rhode Island, New York, and Georgia."),
+			new Answer("California", "Wrong."),
 			new Answer("Georgia", "Correct!",true),
 			new Answer("New York", "Correct!",true),
-			new Answer("North Dakota", "Wrong. The answers are: Rhode Island, New York, and Georgia."),
-			new Answer("Louisiana", "Wrong. The answers are: Rhode Island, New York, and Georgia.")]
+			new Answer("North Dakota", "Wrong."),
+			new Answer("Louisiana", "Wrong.")]
 			),
 			new DropdownQuestion(
 			"Which state produces the most oil in the US?",
