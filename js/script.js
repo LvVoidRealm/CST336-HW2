@@ -8,6 +8,7 @@ let totalPlays = localStorage.getItem("plays");
 //Event listeners
 document.querySelector("#startQuiz").addEventListener("click", startQuiz);
 document.querySelector("#submitBtn").addEventListener("click", checkAnswers);
+document.querySelector("#restartBtn").addEventListener("click", restartQuiz);
 
 //==============================
 
@@ -28,15 +29,19 @@ function initializeQuiz(){
 function hideQuiz(){
 	document.querySelector("#quiz").style.display = "none";
 	document.querySelector("#submitBtn").style.display="none";
-	
 }
 
 function startQuiz(){
 	document.querySelector("#welcome").style.display = "none";
 	document.querySelector("#startQuiz").style.display = "none";
+	document.querySelector("#goodScoreMsg").style.display="none";
 	
 	document.querySelector("#quiz").style.display = "block";
 	document.querySelector("#submitBtn").style.display="block";
+}
+
+function restartQuiz(){
+	location.reload();
 }
 
 function finishGame(){
@@ -54,6 +59,9 @@ function finishGame(){
 	
 	document.querySelector("#score").style.display="block";
 	document.querySelector("#scoreLabel").textContent = score+"/100";
+	if(score > 80){
+		document.querySelector("#goodScoreMsg").style.display="block";
+	}
 }
 
 function checkAnswers(){
@@ -166,7 +174,11 @@ class RangeQuestion {
 	
 	checkCorrect(id, num){
 		let range = document.getElementsByName(id);
+		let feedback = document.querySelector("#feedback"+num);
 		let val = range[0].value;
+		feedback.textContent = val === this.answer.text ? this.answer.feedback : this.feedback;
+		feedback.style.display="inline";
+		range[0].disabled = true;
 		return val === this.answer.text;
 	}
 	
@@ -177,7 +189,7 @@ class RangeQuestion {
 		<form>
 			<div class = "row">
 				<blockquote id="rangeVal">0</blockquote>
-				<label><input type="range" step=1 min=0 max=100 value=0 name="question${number}" id="question${number}"></label>
+				<label><input type="range" step=1 min=0 max=100 value=0 name="question${number}"></label>
 				<label id="feedback${number}" class="hidden"></label>
 			</div>
 		</form>`;
@@ -199,6 +211,7 @@ class TextQuestion {
 	
 	checkCorrect(id, num){
 		let selected = document.getElementsByName(id);
+		selected[0].disabled = true;
 		let val = selected[0].value;
 		return val.toLowerCase() === this.answer.text.toLowerCase();
 	}
@@ -223,8 +236,15 @@ class NumberQuestion {
 		this.feedback = feedback;
 	}
 	
-	checkCorrect(value){
-		return value == this.answer;
+	checkCorrect(id, number){
+		let selected = document.getElementsByName(id);
+		let val = selected[0]["value"];
+		let feedback = document.querySelector("#feedback"+number);
+		feedback.textContent = val == this.answer ? this.answer.feedback : this.feedback;
+		feedback.style.display = "inline";
+		
+		selected.disabled = true;
+		return val == this.answer;
 	}
 	
 	displayQuestion(container, number){
@@ -233,7 +253,7 @@ class NumberQuestion {
 		<h4>${this.question}</h4>
 		<form>
 			<div class = "row">
-				<label><input type="number" min=0 max=100 name="question${number} id="question${number}"></label>
+				<label><input type="number" min=0 max=100 value=0 name="question${number}"></label>
 				<label id="feedback${number}" class="hidden"></label>
 			</div>
 		</form>`;
@@ -279,11 +299,19 @@ class Question {
 		<form>
 			<div class = "row">
 				<label><input type="radio" name="question${number}" value="-1" class="hidden" checked="checked"></label>
-				<label><input type="radio" name="question${number}" value="0"> ${this.answers[0].text} </label>
-				<label><input type="radio" name="question${number}" value="1"> ${this.answers[1].text} </label>
-				<label><input type="radio" name="question${number}" value="2"> ${this.answers[2].text} </label>
-				<label><input type="radio" name="question${number}" value="3"> ${this.answers[3].text} </label>
-				<label id="feedback${number}" class="hidden"></label>
+				<label><input type="radio" name="question${number}" value="0"> ${this.answers[0].text}
+				<label id="feedback${number}0" class="hidden"></label>
+				</label>
+				<label><input type="radio" name="question${number}" value="1"> ${this.answers[1].text}
+				<label id="feedback${number}1" class="hidden"></label>
+				</label>
+				<label><input type="radio" name="question${number}" value="2"> ${this.answers[2].text}
+				<label id="feedback${number}2" class="hidden"></label>
+				</label>
+				<label><input type="radio" name="question${number}" value="3"> ${this.answers[3].text}
+				<label id="feedback${number}3" class="hidden"></label>
+				</label>
+				<label id="feedback${number}4" class="hidden"></label>
 			</div>
 		</form>`;
 	}
@@ -335,7 +363,7 @@ function addQuestions(){
 			new Answer("New York", "Wrong. Florida contains about 6% of the US population, about half of the answer, California.")),
 			new NumberQuestion(
 			"How many states are there in the US?",
-			50,
+			"50",
 			"Wrong. There are 50 states in the US."),
 			new CheckboxQuestion(
 			"Which of these states are in the east coast of the US?",
